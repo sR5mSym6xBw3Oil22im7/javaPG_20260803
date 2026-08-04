@@ -17,13 +17,13 @@ public class App {
             int statusCode;
 
             // path と文字列を比べます。
-            if (path.equals("/hello")) {
+            if (path == "/hello") {
                 message = "こんにちは！";
                 statusCode = 200;
-            } else if (path.equals("/menu")) {
+            } else if (path == "/menu") {
                 message = "今日の定食はカレー";
                 statusCode = 200;
-            } else if (path.equals("/bye")) {
+            } else if (path == "/bye") {
                 message = "さようなら！";
                 statusCode = 200;
             } else {
