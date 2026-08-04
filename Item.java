@@ -1,14 +1,14 @@
-// Item クラス（Javaの部品のまとまり）を作ります
+// Item クラスの最小例です
 public class Item {
-    // main メソッド（最初に動く処理）を書きます
     public static void main(String[] args) {
-        // title という文字列（文字の集まり）を作って「自分の今日のTodo」を入れます
-        String title = "自分の今日のTodo";
-        // done という真偽値（true/false の値）を作って false を入れます
+        // タイトルと完了状態を用意します
+        String title = "自宅の庭のTodo";
         boolean done = false;
-        // + でつないで、1行分のHTML文字列（Webページの文章）を作ります
+
+        // HTML の li 要素を作ります
         String html = "<li>" + title + "</li>";
-        // done の値をターミナル（黒い画面）に1行出します
+
+        System.out.println(html);
         System.out.println(done);
     }
 }
