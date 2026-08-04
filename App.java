@@ -17,7 +17,7 @@ public class App {
             int statusCode;
 
             // path と文字列を比べます。
-            if (path == "/hello") {
+            if (path.equals("/hello")) {
                 message = "こんにちは！";
                 statusCode = 200;
             } else if (path.equals("/menu")) {
