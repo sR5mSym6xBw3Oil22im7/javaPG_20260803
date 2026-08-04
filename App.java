@@ -20,10 +20,10 @@ public class App {
             if (path == "/hello") {
                 message = "こんにちは！";
                 statusCode = 200;
-            } else if (path == "/menu") {
+            } else if (path.equals("/menu")) {
                 message = "今日の定食はカレー";
                 statusCode = 200;
-            } else if (path == "/bye") {
+            } else if (path.equals("/bye")) {
                 message = "さようなら！";
                 statusCode = 200;
             } else {
