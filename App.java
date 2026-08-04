@@ -16,19 +16,24 @@ public class App {
             String message;
             int statusCode;
 
-            // path と文字列を比べます。
-            if (path.equals("/hello")) {
-                message = "こんにちは！";
-                statusCode = 200;
-            } else if (path.equals("/menu")) {
-                message = "今日の定食はカレー";
-                statusCode = 200;
-            } else if (path.equals("/bye")) {
-                message = "さようなら！";
-                statusCode = 200;
-            } else {
-                message = "ページが見つかりません";
-                statusCode = 404;
+            // path ごとに分けます。
+            switch (path) {
+                case "/hello":
+                    message = "こんにちは！";
+                    statusCode = 200;
+                    break;
+                case "/menu":
+                    message = "今日の定食はカレー";
+                    statusCode = 200;
+                    break;
+                case "/bye":
+                    message = "さようなら！";
+                    statusCode = 200;
+                    break;
+                default:
+                    message = "ページが見つかりません";
+                    statusCode = 404;
+                    break;
             }
 
             byte[] body = message.getBytes(StandardCharsets.UTF_8);
