@@ -1,3 +1,4 @@
+
 // HTTP サーバーを使います
 import com.sun.net.httpserver.HttpServer;
 // リクエストを受け取る型です
@@ -16,29 +17,29 @@ public class App {
     // 起動処理です
     public static void main(String[] args) throws Exception {
         // 8080 番ポートで待ち受けます
-        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+【1】        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
 
         // ルートパスの処理を登録します
-        server.createContext("/", exchange -> {
+【1】        server.createContext("/", exchange -> {
             // 返すメッセージです
-            String message = "こんにちは、サーバー！";
+【毎】            String message = "こんにちは、サーバー！";
             // UTF-8 のバイト列に変換します
-            byte[] body = message.getBytes(StandardCharsets.UTF_8);
+【毎】            byte[] body = message.getBytes(StandardCharsets.UTF_8);
             // プレーンテキストとして返します
-            exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+【毎】            exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
             // 成功応答と本文サイズを返します
-            exchange.sendResponseHeaders(200, body.length);
+【毎】           exchange.sendResponseHeaders(200, body.length);
             // 応答本文を書き込みます
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(body);
-            }
+【毎】            try (OutputStream os = exchange.getResponseBody()) {
+【毎】                os.write(body);
+【毎】            }
         });
 
         // サーバーを起動します
-        server.start();
+【1】        server.start();
         // 起動メッセージを表示します
-        System.out.println("サーバー起動: http://localhost:8080 （止めるときは Ctrl+C）");
+【1】        System.out.println("サーバー起動: http://localhost:8080 （止めるときは Ctrl+C）");
         // メインスレッドを待機させます
-        Thread.currentThread().join();
+【1】        Thread.currentThread().join();
     }
 }
