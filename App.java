@@ -39,10 +39,10 @@ public class App {
         });
 
         // サーバーを起動します
-        server.start();
+        // server.start();
         // 起動メッセージを表示します
         System.out.println("サーバー起動: http://localhost:8080 （止めるときは Ctrl+C）");
         // メインスレッドを待機させます
-        Thread.currentThread().join();
+        // Thread.currentThread().join();
     }
 }
