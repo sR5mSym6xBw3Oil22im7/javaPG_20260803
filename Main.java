@@ -1,32 +1,51 @@
-import java.util.ArrayList; // Todo を扱うための標準クラスです
-import java.util.List; // 複数の Todo をまとめて扱うための型です
+// ArrayList を使います
+import java.util.ArrayList;
+// List を使います
+import java.util.List;
 
-public class Main { // アプリの中心になるクラスです
-    public static void main(String[] args) { // Java の実行開始点です
-        List<Todo> todos = new ArrayList<>(); // Todo をまとめるリストを作ります
-        todos.add(new Todo("買い物をする", true)); // 1件目の Todo
-        todos.add(new Todo("ゴミを出す", false)); // 2件目の Todo
-        todos.add(new Todo("掃除をする", false)); // 3件目の Todo
+// Todo 一覧を表示するサンプルです
+public class Main {
+    // アプリの入口です
+    public static void main(String[] args) {
+        // Todo を入れるリストを作成します
+        List<Todo> todos = new ArrayList<>();
+        // 1件目の Todo を追加します
+        todos.add(new Todo("買い物をする", true));
+        // 2件目の Todo を追加します
+        todos.add(new Todo("ゴミを出す", false));
+        // 3件目の Todo を追加します
+        todos.add(new Todo("掃除をする", false));
 
-        for (Todo todo : todos) { // リストの中身を1件ずつ表示します
-            System.out.println(todo.toItem()); // HTML の li 要素として出力します
-        } // for の終わり
-    } // main の終わり
-} // Main クラスの終わり
+        // リストの中身を順に表示します
+        for (Todo todo : todos) {
+            // HTML の li 要素として出力します
+            System.out.println(todo.toItem());
+        }
+    }
+}
 
-class Todo { // Todo を表すクラスです
-    private final String title; // タイトルを保持します
-    private final boolean done; // 完了しているかを保持します
+// Todo を表すクラスです
+class Todo {
+    // タイトルを保持します
+    private final String title;
+    // 完了状態を保持します
+    private final boolean done;
 
-    public Todo(String title, boolean done) { // Todo を作るときの初期化です
-        this.title = title; // 渡されたタイトルを保存します
-        this.done = done; // 渡された状態を保存します
-    } // コンストラクタの終わり
+    // Todo の内容を受け取って初期化します
+    public Todo(String title, boolean done) {
+        // 受け取ったタイトルを保存します
+        this.title = title;
+        // 受け取った状態を保存します
+        this.done = done;
+    }
 
-    public String toItem() { // Todo を li タグの文字列に変えます
-        if (done) { // 完了しているなら印を付けます
+    // Todo を li タグの文字列に変換します
+    public String toItem() {
+        // 完了している場合は印を付けます
+        if (done) {
             return "<li>[済] " + title + "</li>";
-        } // if の終わり
-        return "<li>" + title + "</li>"; // 未完了ならそのまま出します
-    } // toItem() の終わり
-} // Todo クラスの終わり
+        }
+        // 未完了ならそのまま返します
+        return "<li>" + title + "</li>";
+    }
+}

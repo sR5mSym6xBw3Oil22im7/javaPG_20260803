@@ -1,47 +1,44 @@
-// かんたんなHTTPサーバーを使います
+// HTTP サーバーを使います
 import com.sun.net.httpserver.HttpServer;
-// リクエストと返事を受け取る箱です
+// リクエストを受け取る型です
 import com.sun.net.httpserver.HttpExchange;
-// 入出力のエラー用です
+// 入出力エラー用です
 import java.io.IOException;
-// 文字を送るときの出口です
+// 応答を書き出す型です
 import java.io.OutputStream;
-// どの住所・どの番号で待つかを指定します
+// 接続先を指定します
 import java.net.InetSocketAddress;
-// UTF-8という文字コードを使います
+// UTF-8 を使います
 import java.nio.charset.StandardCharsets;
 
-// 実行するクラスの名前です
+// アプリの入口です
 public class App {
-    // ここから起動します
+    // 起動処理です
     public static void main(String[] args) throws Exception {
-        // 8080番で待ち受けます
+        // 8080 番ポートで待ち受けます
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
 
-        // "/" に来たときの処理をここに直接書きます
+        // ルートパスの処理を登録します
         server.createContext("/", exchange -> {
-            // 返す文字を message という変数に入れます
+            // 返すメッセージです
             String message = "こんにちは、サーバー！";
-            // UTF-8でバイト列に変えます
+            // UTF-8 のバイト列に変換します
             byte[] body = message.getBytes(StandardCharsets.UTF_8);
-            // 文字化けしにくいように指定します
+            // プレーンテキストとして返します
             exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
-            // 200は成功、本文の長さも伝えます
+            // 成功応答と本文サイズを返します
             exchange.sendResponseHeaders(200, body.length);
-            // 返事を入れる出口を開きます
+            // 応答本文を書き込みます
             try (OutputStream os = exchange.getResponseBody()) {
-                // 文字を送ります
                 os.write(body);
             }
-            // ここで出口を自動で閉じます
         });
 
         // サーバーを起動します
         server.start();
-        // 起動メッセージをそのまま表示します
+        // 起動メッセージを表示します
         System.out.println("サーバー起動: http://localhost:8080 （止めるときは Ctrl+C）");
-        // プログラムを待機状態にします
+        // メインスレッドを待機させます
         Thread.currentThread().join();
     }
-    // main はここまでです
 }
