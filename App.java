@@ -1,10 +1,10 @@
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,8 +34,10 @@ public class App {
                 message = "さようなら";
                 statusCode = 200;
             } else if (path.equals("/todos")) {
-                // 追加: Todo を入れる List を用意します。
-                List<String> todos = Arrays.asList("牛乳を買う", "卵を買う", "パンを買う");
+                // 追加: 追加できる List にするため、ArrayList にします。
+                List<String> todos = new ArrayList<>(Arrays.asList("牛乳を買う", "卵を買う", "パンを買う"));
+                // 追加: 自分の Todo を 1 件足します。
+                todos.add("自分の今日のTodo");
                 // 追加: HTML を入れる変数 html に、<ul><li>...</li></ul> を組み立てます。
                 String html = "<ul>";
                 for (String todo : todos) {
