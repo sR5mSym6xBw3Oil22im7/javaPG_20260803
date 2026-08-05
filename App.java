@@ -47,7 +47,7 @@ public class App {
                 message = html;
                 statusCode = 200;
                 // 追加: /todos のときだけ HTML として返します。
-                contentType = "text/html; charset=UTF-8";
+                contentType = "text/plain; charset=UTF-8";
             } else {
                 message = "ページが見つかりません";
                 statusCode = 404;
