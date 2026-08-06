@@ -70,7 +70,7 @@ public class App {
             // ★変更 1 件ぶんの li を開く
             html.append("<li>");
             // ★変更 Todo の title を表示する
-            html.append(todo);
+            html.append(todo.getTitle());
             // ★変更 終わった Todo にだけ印を付ける
             if (todo.isDone()) {
                 // ★変更 終わった印を足す
