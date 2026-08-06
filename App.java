@@ -18,15 +18,19 @@ import java.util.List;
 
 // アプリ本体のクラスを定義する
 public class App {
+    // Todo 一覧を共有するための置き場所を用意する
+    private static List<String> todos;
     // アプリの開始点を定義する
     public static void main(String[] args) throws Exception {
         // Todo をためる一覧を一度だけ作る
-        List<String> todos = new ArrayList<>();
+        // List<String> todos = App.todos = new ArrayList<>();
         // 8080 番ポートで HTTP サーバーを作る
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
 
         // ルートの受け皿を作る
         server.createContext("/", exchange -> {
+            // Todo をためる一覧を一度だけ作る
+            List<String> todos = App.todos = new ArrayList<>();
             // リクエストのパスを取り出す
             String path = exchange.getRequestURI().getPath();
             // レスポンスの本文を入れる変数を用意する
@@ -143,7 +147,7 @@ public class App {
             // 空でないときだけ追加する
             if (!todo.isEmpty()) {
                 // Todo を一覧に追加する
-                todos.add(todo);
+                App.todos.add(todo);
             }
             // もとの画面に戻すための場所を伝える
             exchange.getResponseHeaders().set("Location", "/");
