@@ -1,3 +1,4 @@
+
 // ★変更 HTTP サーバーを使うための読み込み
 import com.sun.net.httpserver.HttpExchange;
 // ★変更 HTTP サーバー本体を使うための読み込み
@@ -69,7 +70,7 @@ public class App {
             // ★変更 1 件ぶんの li を開く
             html.append("<li>");
             // ★変更 Todo の title を表示する
-            html.append(todo.getTitle());
+            html.append(todo);
             // ★変更 終わった Todo にだけ印を付ける
             if (todo.isDone()) {
                 // ★変更 終わった印を足す
