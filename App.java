@@ -83,8 +83,8 @@ public class App {
                         // ★追加 見つかったときだけ done を true にする
                         // Todoが見つかった場合だけ完了状態を変更する
                         if (todo != null) {
-                            // Todoを完了状態に変更する
-                            todo.setDone(true);
+                            // Todoの完了状態を反転して切り替える
+                            todo.setDone(!todo.isDone());
                             // 完了状態の条件分岐を終了する
                         }
                         // 完了操作でない場合は削除操作を行う
@@ -230,7 +230,7 @@ public class App {
             // queryパラメーターの繰り返しを終了する
         }
         // ★追加 id がなければ失敗にする
-        // idが見つからなかったことをnullで示す
+        // idが見つからなければ失敗にする
         return null;
         // parseIdメソッドを終了する
     }
