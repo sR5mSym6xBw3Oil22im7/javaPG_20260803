@@ -82,8 +82,21 @@ public class App {
                         updateTodo(id);
                         // 完了操作でない場合は削除操作を行う
                     } else {
-                        // ★変更 指定したTodoをSQLiteからDELETEする
-                        deleteTodo(id);
+                        // ★追加 Todoの状態に応じて取消線または削除を行う
+                        int state = findTodoState(id);
+                        // ★追加 完了済みで取消線済みなら一覧から削除する
+                        if (state == 3) {
+                            // ★変更 指定したTodoをSQLiteからDELETEする
+                            deleteTodo(id);
+                        // ★追加 完了済みで取消線がなければ取消線を付ける
+                        } else if (state == 2) {
+                            // ★追加 指定したTodoに削除待ち状態を保存する
+                            markTodoForDeletion(id);
+                        // ★追加 未完了Todoは従来どおり1回で削除する
+                        } else {
+                            // ★追加 指定したTodoをSQLiteからDELETEする
+                            deleteTodo(id);
+                        }
                         // 完了または削除の分岐を終了する
                     }
                     // idの有無による条件分岐を終了する
@@ -131,9 +144,24 @@ public class App {
                         mark = " ✔";
                         // 完了状態の条件分岐を終了する
                     }
-                    // ★追加 id つきのリンクを Todo の横に表示する
-                    html += "<li>" + todo.getTitle() + mark + " <a href='/done?id=" + todo.getId()
-                            + "'>完了</a> <a href='/delete?id=" + todo.getId() + "'>削除</a></li>";
+                    // ★追加 表示するTodoタイトルを用意する
+                    String title = todo.getTitle();
+                    // ★追加 完了済みで削除待ちのTodoだけに取消線を付ける
+                    if (todo.isDone() && todo.isDeleteMarked()) {
+                        // ★追加 Todoタイトルを取消線付きのHTMLで包む
+                        title = "<span style='text-decoration:line-through'>" + title + "</span>";
+                    }
+                    // ★追加 Todo削除リンクの基本部分を作成する
+                    String deleteLink = "<a href='/delete?id=" + todo.getId() + "'>削除</a>";
+                    // ★変更 未完了または取消線付きTodoに削除確認を表示する
+                    if (!todo.isDone() || todo.isDeleteMarked()) {
+                        // ★追加 削除確認を許可した場合だけリンクを実行する
+                        deleteLink = "<a href='/delete?id=" + todo.getId()
+                                + "' onclick=\"return confirm('削除してよいですか？');\">削除</a>";
+                    }
+                    // ★変更 id つきのリンクを Todo の横に表示する
+                    html += "<li>" + title + mark + " <a href='/done?id=" + todo.getId()
+                            + "'>完了</a> " + deleteLink + "</li>";
                     // Todo一覧の繰り返しを終了する
                 }
                 // Todo一覧の終了タグとページの終了タグをHTMLに追加する
@@ -198,7 +226,7 @@ public class App {
         // ★追加 データベース接続とSQL文を自動的に閉じる
         try (Connection connection = DriverManager.getConnection(DB_URL);
              PreparedStatement statement = connection.prepareStatement(
-                     "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY, title TEXT, done INTEGER)")) {
+                     "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY, title TEXT, done INTEGER, delete_marked INTEGER DEFAULT 0)")) {
             // ★追加 todos表を作成するSQLを実行する
             statement.executeUpdate();
         // ★追加 データベース処理のエラーを扱う
@@ -206,6 +234,18 @@ public class App {
             // ★追加 データベース初期化の失敗を知らせる
             throw new RuntimeException("SQLiteの初期化に失敗しました", e);
         // ★追加 データベース初期化処理を終了する
+        }
+        // ★追加 既存のtodos表にも削除待ち列を追加する
+        try (Connection connection = DriverManager.getConnection(DB_URL);
+             // ★追加 既存DB用の列追加SQLを準備する
+             PreparedStatement statement = connection.prepareStatement(
+                     "ALTER TABLE todos ADD COLUMN delete_marked INTEGER DEFAULT 0")) {
+            // ★追加 既存DBへの列追加を実行する
+            statement.executeUpdate();
+        // ★追加 列がすでにある場合はそのまま利用する
+        } catch (SQLException e) {
+            // ★追加 既存列またはSQLiteの制約によるエラーを許容する
+        // ★追加 既存DBへの列追加処理を終了する
         }
     // ★追加 initializeDatabaseメソッドを終了する
     }
@@ -215,7 +255,7 @@ public class App {
         // ★追加 INSERT文と接続を自動的に閉じる
         try (Connection connection = DriverManager.getConnection(DB_URL);
              PreparedStatement statement = connection.prepareStatement(
-                     "INSERT INTO todos (title, done) VALUES (?, 0)")) {
+                     "INSERT INTO todos (title, done, delete_marked) VALUES (?, 0, 0)")) {
             // ★追加 TodoタイトルをSQLの値として設定する
             statement.setString(1, title);
             // ★追加 INSERT文を実行する
@@ -234,7 +274,7 @@ public class App {
         // ★追加 UPDATE文と接続を自動的に閉じる
         try (Connection connection = DriverManager.getConnection(DB_URL);
              PreparedStatement statement = connection.prepareStatement(
-                     "UPDATE todos SET done = CASE done WHEN 0 THEN 1 ELSE 0 END WHERE id = ?")) {
+                     "UPDATE todos SET done = CASE done WHEN 0 THEN 1 ELSE 0 END, delete_marked = 0 WHERE id = ?")) {
             // ★追加 更新対象のTodo番号をSQLの値として設定する
             statement.setInt(1, id);
             // ★追加 UPDATE文を実行する
@@ -267,6 +307,58 @@ public class App {
     // ★追加 deleteTodoメソッドを終了する
     }
 
+    // ★追加 Todoを削除待ち状態にする
+    static void markTodoForDeletion(int id) {
+        // ★追加 UPDATE文と接続を自動的に閉じる
+        try (Connection connection = DriverManager.getConnection(DB_URL);
+             // ★追加 削除待ち状態を保存するSQLを準備する
+             PreparedStatement statement = connection.prepareStatement(
+                     "UPDATE todos SET delete_marked = 1 WHERE id = ?")) {
+            // ★追加 更新対象のTodo番号をSQLの値として設定する
+            statement.setInt(1, id);
+            // ★追加 削除待ち状態の更新を実行する
+            statement.executeUpdate();
+        // ★追加 Todo削除待ち状態更新のエラーを扱う
+        } catch (SQLException e) {
+            // ★追加 Todo削除待ち状態更新の失敗を知らせる
+            throw new RuntimeException("Todoの取消線設定に失敗しました", e);
+        // ★追加 Todo削除待ち状態更新処理を終了する
+        }
+    // ★追加 markTodoForDeletionメソッドを終了する
+    }
+
+    // ★追加 Todoの完了状態と削除待ち状態を取得する
+    static int findTodoState(int id) {
+        // ★追加 Todo状態を未完了として初期化する
+        int state = 0;
+        // ★追加 SELECT文と接続と結果を自動的に閉じる
+        try (Connection connection = DriverManager.getConnection(DB_URL);
+             // ★追加 Todo状態を取得するSQLを準備する
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT done, delete_marked FROM todos WHERE id = ?")) {
+            // ★追加 検索対象のTodo番号をSQLの値として設定する
+            statement.setInt(1, id);
+            // ★追加 SELECT結果を自動的に閉じる
+            try (ResultSet rows = statement.executeQuery()) {
+                // ★追加 Todoが存在する場合だけ状態を計算する
+                if (rows.next()) {
+                    // ★追加 完了済みを状態の上位ビットに設定する
+                    state = rows.getInt("done") * 2;
+                    // ★追加 削除待ち状態を状態の下位ビットに設定する
+                    state += rows.getInt("delete_marked");
+                }
+            }
+        // ★追加 Todo状態取得のエラーを扱う
+        } catch (SQLException e) {
+            // ★追加 Todo状態取得の失敗を知らせる
+            throw new RuntimeException("Todo状態の取得に失敗しました", e);
+        // ★追加 Todo状態取得処理を終了する
+        }
+        // ★追加 取得したTodo状態を返す
+        return state;
+    // ★追加 findTodoStateメソッドを終了する
+    }
+
     // ★追加 SELECTでSQLiteからTodo一覧を取得する
     static List<Todo> findAllTodos() {
         // ★追加 読み込んだTodoを入れる一覧を作る
@@ -274,7 +366,7 @@ public class App {
         // ★追加 SELECT文と接続と結果を自動的に閉じる
         try (Connection connection = DriverManager.getConnection(DB_URL);
              PreparedStatement statement = connection.prepareStatement(
-                     "SELECT id, title, done FROM todos ORDER BY id");
+                     "SELECT id, title, done, delete_marked FROM todos ORDER BY id");
              ResultSet rows = statement.executeQuery()) {
             // ★追加 SELECT結果を1行ずつTodoに変換する
             while (rows.next()) {
@@ -282,6 +374,8 @@ public class App {
                 Todo todo = new Todo(rows.getInt("id"), rows.getString("title"));
                 // ★追加 SELECT結果の完了状態をTodoに設定する
                 todo.setDone(rows.getInt("done") == 1);
+                // ★追加 SELECT結果の削除待ち状態をTodoに設定する
+                todo.setDeleteMarked(rows.getInt("delete_marked") == 1);
                 // ★追加 読み込んだTodoを一覧に追加する
                 result.add(todo);
             // ★追加 SELECT結果の読み込みを終了する
@@ -450,6 +544,8 @@ class Todo {
     private final String title;
     // Todoの完了状態を保持する
     private boolean done;
+    // ★追加 削除待ち状態を保持する
+    private boolean deleteMarked;
 
     // ★変更 Todo は done=false で初期化する
     // Todoの初期値を設定する
@@ -460,6 +556,8 @@ class Todo {
         this.title = title;
         // Todoを未完了状態で初期化する
         this.done = false;
+        // ★追加 Todoを削除待ちでない状態に初期化する
+        this.deleteMarked = false;
         // Todoコンストラクターを終了する
     }
 
@@ -493,6 +591,17 @@ class Todo {
         // 受け取った完了状態を保存する
         this.done = done;
         // 完了状態設定メソッドを終了する
+    }
+    // ★追加 削除待ち状態を返すメソッドを定義する
+    boolean isDeleteMarked() {
+        // ★追加 保持している削除待ち状態を返す
+        return deleteMarked;
+    }
+
+    // ★追加 削除待ち状態を設定するメソッドを定義する
+    void setDeleteMarked(boolean deleteMarked) {
+        // ★追加 受け取った削除待ち状態を保存する
+        this.deleteMarked = deleteMarked;
     }
     // Todoクラスの定義を終了する
 }
