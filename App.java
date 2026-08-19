@@ -157,7 +157,33 @@ public class App {
             exchange.getResponseBody().write(responseBody);
             // レスポンス本文を閉じる
             exchange.getResponseBody().close();
-            // リクエスト処理の登録を終了する
+        // リクエスト処理の登録を終了する
+        });
+
+        // ★追加 JSON APIへのリクエスト処理を登録する
+        server.createContext("/api/todos", exchange -> {
+            // ★追加 リクエストメソッドがGETか確認する
+            if (!exchange.getRequestMethod().equals("GET")) {
+                // ★追加 GET以外のリクエストには405を返す
+                exchange.sendResponseHeaders(405, -1);
+                // ★追加 GET以外のレスポンスを閉じる
+                exchange.close();
+                // ★追加 GET以外の処理を終了する
+                return;
+            }
+            // ★追加 SQLiteから取得したTodo一覧をJSON文字列に変換する
+            String json = todosToJson();
+            // ★追加 Content-Typeをapplication/jsonだけに設定する
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            // ★追加 JSON文字列をUTF-8のバイト列に変換する
+            byte[] responseBody = json.getBytes(StandardCharsets.UTF_8);
+            // ★追加 JSONレスポンスのヘッダーを送信する
+            exchange.sendResponseHeaders(200, responseBody.length);
+            // ★追加 JSONレスポンスの本文を書き込む
+            exchange.getResponseBody().write(responseBody);
+            // ★追加 JSONレスポンスを閉じる
+            exchange.getResponseBody().close();
+        // ★追加 JSON APIのリクエスト処理を終了する
         });
 
         // HTTPサーバーの待ち受けを開始する
@@ -269,6 +295,113 @@ public class App {
         // ★追加 SELECTしたTodo一覧を返す
         return result;
     // ★追加 findAllTodosメソッドを終了する
+    }
+
+    // ★追加 Todo一覧をJSON配列に変換する
+    static String todosToJson() {
+        // ★追加 JSON配列の本文を作成する
+        StringBuilder json = new StringBuilder("[");
+        // ★追加 SQLiteから全Todoを取得する
+        List<Todo> todos = findAllTodos();
+        // ★追加 Todo一覧を順番にJSONへ追加する
+        for (int i = 0; i < todos.size(); i++) {
+            // ★追加 2件目以降の前にカンマを追加する
+            if (i > 0) {
+                // ★追加 JSON要素の区切りを追加する
+                json.append(",");
+            }
+            // ★追加 現在のTodoを取得する
+            Todo todo = todos.get(i);
+            // ★追加 タイトルと完了状態をJSONオブジェクトとして追加する
+            json.append("{\"title\":\"")
+                    // ★追加 タイトルをJSON用にエスケープして追加する
+                    .append(escapeJson(todo.getTitle()))
+                    // ★追加 完了状態の項目名を追加する
+                    .append("\",\"done\":")
+                    // ★追加 完了状態をJSONへ追加する
+                    .append(todo.isDone())
+                    // ★追加 JSONオブジェクトを閉じる
+                    .append("}");
+        // ★追加 Todo一覧のJSON変換を終了する
+        }
+        // ★追加 JSON配列の終了記号を追加する
+        json.append("]");
+        // ★追加 完成したJSON文字列を返す
+        return json.toString();
+    // ★追加 todosToJsonメソッドを終了する
+    }
+
+    // ★追加 JSON文字列内で特別な意味を持つ文字をエスケープする
+    static String escapeJson(String value) {
+        // ★追加 エスケープ後の文字列を作成する
+        StringBuilder escaped = new StringBuilder();
+        // ★追加 タイトルの文字を1文字ずつ確認する
+        for (int i = 0; i < value.length(); i++) {
+            // ★追加 現在の文字を取得する
+            char character = value.charAt(i);
+            // ★追加 文字の種類に応じてJSON用に変換する
+            switch (character) {
+                // ★追加 ダブルクォートをエスケープする
+                case '"':
+                    // ★追加 ダブルクォートの前にバックスラッシュを付ける
+                    escaped.append("\\\"");
+                    // ★追加 ダブルクォートの処理を終了する
+                    break;
+                // ★追加 バックスラッシュをエスケープする
+                case '\\':
+                    // ★追加 バックスラッシュを2文字にする
+                    escaped.append("\\\\");
+                    // ★追加 バックスラッシュの処理を終了する
+                    break;
+                // ★追加 改行をエスケープする
+                case '\n':
+                    // ★追加 改行をJSONのエスケープ表記にする
+                    escaped.append("\\n");
+                    // ★追加 改行の処理を終了する
+                    break;
+                // ★追加 復帰をエスケープする
+                case '\r':
+                    // ★追加 復帰をJSONのエスケープ表記にする
+                    escaped.append("\\r");
+                    // ★追加 復帰の処理を終了する
+                    break;
+                // ★追加 タブをエスケープする
+                case '\t':
+                    // ★追加 タブをJSONのエスケープ表記にする
+                    escaped.append("\\t");
+                    // ★追加 タブの処理を終了する
+                    break;
+                // ★追加 バックスペースをエスケープする
+                case '\b':
+                    // ★追加 バックスペースをJSONのエスケープ表記にする
+                    escaped.append("\\b");
+                    // ★追加 バックスペースの処理を終了する
+                    break;
+                // ★追加 改ページをエスケープする
+                case '\f':
+                    // ★追加 改ページをJSONのエスケープ表記にする
+                    escaped.append("\\f");
+                    // ★追加 改ページの処理を終了する
+                    break;
+                // ★追加 その他の制御文字をUnicode表記にする
+                default:
+                    // ★追加 制御文字かどうかを確認する
+                    if (character < 0x20) {
+                        // ★追加 制御文字を4桁のUnicodeエスケープに変換する
+                        escaped.append(String.format("\\u%04x", (int) character));
+                    } else {
+                        // ★追加 通常の文字をそのまま追加する
+                        escaped.append(character);
+                    }
+                    // ★追加 通常文字または制御文字の処理を終了する
+                    break;
+            // ★追加 文字の種類分けを終了する
+            }
+        // ★追加 タイトル文字の確認を終了する
+        }
+        // ★追加 エスケープ後の文字列を返す
+        return escaped.toString();
+    // ★追加 escapeJsonメソッドを終了する
     }
 
     // ★追加 query 文字列から id を読む
