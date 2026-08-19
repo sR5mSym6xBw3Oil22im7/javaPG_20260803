@@ -1,2 +1,4 @@
 .history/
 *.class
+# すべてのCSVファイルをGitのコミット対象外にする
+*.csv

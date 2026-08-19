@@ -1,12 +1,18 @@
 
 // HTTPサーバーを利用するためのクラスを読み込む
 import com.sun.net.httpserver.HttpServer;
+// ファイル保存時のエラーを扱うクラスを読み込む
+import java.io.IOException;
 // サーバーの待ち受けアドレスを扱うクラスを読み込む
 import java.net.InetSocketAddress;
 // URLエンコードされた文字列を復号するクラスを読み込む
 import java.net.URLDecoder;
 // 文字コードを指定するクラスを読み込む
 import java.nio.charset.StandardCharsets;
+// ファイルを読み書きするクラスを読み込む
+import java.nio.file.Files;
+// ファイルの場所を表すクラスを読み込む
+import java.nio.file.Path;
 // 可変長リストを扱うクラスを読み込む
 import java.util.ArrayList;
 // リストのインターフェースを読み込む
@@ -21,14 +27,8 @@ public class App {
 
     // アプリケーションを起動する
     public static void main(String[] args) throws Exception {
-        // ★変更 起動時にサンプルの Todo を2件入れる
-        todos.add(new Todo(nextId++, "牛乳を買う"));
-        // サンプルの卵Todoを作成する
-        Todo egg = new Todo(nextId++, "卵を買う");
-        // サンプルの卵Todoを完了状態にする
-        egg.setDone(true);
-        // サンプルの卵Todoを一覧に追加する
-        todos.add(egg);
+        // ★変更 起動時に保存済みのTodoを読み込む
+        load();
 
         // 8080番ポートでHTTPサーバーを作成する
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
@@ -53,10 +53,12 @@ public class App {
                 String title = URLDecoder.decode(value, StandardCharsets.UTF_8);
                 // タイトルが空でない場合だけTodoを追加する
                 if (!title.isEmpty()) {
-                    // ★変更 フォームの内容から Todo を1件作って List に追加する
+                    // ★変更 フォームの内容からTodoを1件作ってListに追加する
                     todos.add(new Todo(nextId, title));
-                    // ★変更 次の Todo に使う番号を進める
+                    // ★変更 次のTodoに使う番号を進める
                     nextId++;
+                    // ★変更 Todoを追加した一覧をファイルに保存する
+                    save();
                     // Todo追加処理の条件分岐を終了する
                 }
                 // 一覧ページへのリダイレクト先を設定する
@@ -78,25 +80,27 @@ public class App {
                     // ★追加 /done なら完了にする
                     // 完了操作かどうかを判定する
                     if (path.equals("/done")) {
-                        // ★追加 id が一致した Todo を探す
+                        // ★変更 idが一致したTodoを探す
                         Todo todo = findTodoById(id);
-                        // ★追加 見つかったときだけ done を true にする
-                        // Todoが見つかった場合だけ完了状態を変更する
+                        // ★変更 見つかったTodoの完了状態を反転する
                         if (todo != null) {
-                            // Todoの完了状態を反転して切り替える
+                            // ★変更 Todoの完了状態を反転して切り替える
                             todo.setDone(!todo.isDone());
-                            // 完了状態の条件分岐を終了する
+                            // ★変更 完了状態を変更した一覧をファイルに保存する
+                            save();
+                        // ★変更 Todoが見つかった場合の処理を終了する
                         }
                         // 完了操作でない場合は削除操作を行う
                     } else {
-                        // ★追加 /delete なら List から外す
+                        // ★変更 idが一致したTodoを探す
                         Todo todo = findTodoById(id);
-                        // ★追加 見つかったときだけ List から消す
-                        // Todoが見つかった場合だけ一覧から削除する
+                        // ★変更 見つかったTodoをListから削除する
                         if (todo != null) {
-                            // Todoを一覧から削除する
+                            // ★変更 Todoを一覧から削除する
                             todos.remove(todo);
-                            // Todo削除の条件分岐を終了する
+                            // ★変更 Todoを削除した一覧をファイルに保存する
+                            save();
+                        // ★変更 Todoが見つかった場合の処理を終了する
                         }
                         // 完了または削除の分岐を終了する
                     }
@@ -176,27 +180,104 @@ public class App {
         server.start();
         // 起動したサーバーのURLを表示する
         System.out.println("サーバー起動: http://localhost:8080 (止めるときは Ctrl+C)");
-        // mainメソッドを終了する
+    // mainメソッドを終了する
     }
 
-    // ★追加 id から Todo を 1 件探す
-    static Todo findTodoById(int id) {
-        // ★追加 List を先頭から順に見る
-        // Todo一覧を先頭から検索する
-        for (Todo todo : todos) {
-            // ★追加 id が一致したらその Todo を返す
-            // Todoのidが指定値と一致するか判定する
-            if (todo.getId() == id) {
-                // 一致したTodoを返す
-                return todo;
-                // id一致の条件分岐を終了する
+    // ★追加 Todo一覧をtodos.csvへUTF-8で保存する
+    static void save() {
+        // ★追加 ファイル保存時のエラーを処理する
+        try {
+            // ★追加 CSV形式の本文を作る
+            StringBuilder csv = new StringBuilder();
+            // ★追加 Todo一覧を1件ずつCSV本文に追加する
+            for (Todo todo : todos) {
+                // ★追加 id、完了状態、タイトルの順で1行を追加する
+                csv.append(todo.getId()).append(",")
+                        .append(todo.isDone() ? "1" : "0").append(",")
+                        .append(todo.getTitle()).append(System.lineSeparator());
             }
-            // Todo検索の繰り返しを終了する
+            // ★追加 Todo一覧をUTF-8のtodos.csvへ書き出す
+            Files.writeString(Path.of("todos.csv"), csv.toString(), StandardCharsets.UTF_8);
+        // ★追加 ファイル保存に失敗した場合を処理する
+        } catch (IOException e) {
+            // ★追加 保存失敗を実行時エラーとして知らせる
+            throw new RuntimeException("todos.csvの保存に失敗しました", e);
+        // ★追加 ファイル保存処理を終了する
         }
-        // ★追加 見つからなければ null を返す
-        // 見つからなかったことをnullで示す
+    // ★追加 saveメソッドを終了する
+    }
+
+    // ★追加 todos.csvからTodo一覧を読み込む
+    static void load() {
+        // ★追加 ファイル読み込み時のエラーを処理する
+        try {
+            // ★追加 起動時の一覧を空にする
+            todos.clear();
+            // ★追加 Todo番号を初期値に戻す
+            nextId = 1;
+            // ★追加 保存ファイルの場所を指定する
+            Path file = Path.of("todos.csv");
+            // ★追加 保存ファイルがなければ空の一覧のまま終了する
+            if (!Files.exists(file)) {
+                // ★追加 保存ファイルがない場合の読み込みを終了する
+                return;
+            }
+            // ★追加 CSVファイルをUTF-8で1行ずつ読み込む
+            for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
+                // ★追加 空行を読み飛ばす
+                if (line.isEmpty()) {
+                    // ★追加 空行の処理を終了する
+                    continue;
+                }
+                // ★追加 id、完了状態、タイトルの3項目に分ける
+                String[] fields = line.split(",", 3);
+                // ★追加 項目数が3つでない行を読み飛ばす
+                if (fields.length != 3) {
+                    // ★追加 不正な行の処理を終了する
+                    continue;
+                }
+                // ★追加 文字列のidを整数に変換する
+                int id = Integer.parseInt(fields[0]);
+                // ★追加 1を完了済み、0を未完了として読み込む
+                boolean done = fields[1].equals("1");
+                // ★追加 読み込んだ内容でTodoを作成する
+                Todo todo = new Todo(id, fields[2]);
+                // ★追加 読み込んだ完了状態をTodoに設定する
+                todo.setDone(done);
+                // ★追加 読み込んだTodoを一覧に追加する
+                todos.add(todo);
+                // ★追加 最大idの次の番号をnextIdに設定する
+                if (id >= nextId) {
+                    // ★追加 重複しない次のTodo番号を設定する
+                    nextId = id + 1;
+                // ★追加 最大id判定の条件分岐を終了する
+                }
+            // ★追加 CSV行の読み込みを終了する
+            }
+        // ★追加 ファイル読み込みに失敗した場合を処理する
+        } catch (IOException | NumberFormatException e) {
+            // ★追加 読み込み失敗を実行時エラーとして知らせる
+            throw new RuntimeException("todos.csvの読み込みに失敗しました", e);
+        // ★追加 ファイル読み込み処理を終了する
+        }
+    // ★追加 loadメソッドを終了する
+    }
+
+    // ★追加 idからTodoを1件探す
+    static Todo findTodoById(int id) {
+        // ★追加 Todo一覧を先頭から検索する
+        for (Todo todo : todos) {
+            // ★追加 Todoのidが指定値と一致するか判定する
+            if (todo.getId() == id) {
+                // ★追加 一致したTodoを返す
+                return todo;
+            // ★追加 id一致の条件分岐を終了する
+            }
+        // ★追加 Todo検索の繰り返しを終了する
+        }
+        // ★追加 見つからなかったことをnullで示す
         return null;
-        // findTodoByIdメソッドを終了する
+    // ★追加 findTodoByIdメソッドを終了する
     }
 
     // ★追加 query 文字列から id を読む
