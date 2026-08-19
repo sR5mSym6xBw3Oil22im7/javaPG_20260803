@@ -1,34 +1,36 @@
 
 // HTTPサーバーを利用するためのクラスを読み込む
 import com.sun.net.httpserver.HttpServer;
-// ファイル保存時のエラーを扱うクラスを読み込む
-import java.io.IOException;
 // サーバーの待ち受けアドレスを扱うクラスを読み込む
 import java.net.InetSocketAddress;
 // URLエンコードされた文字列を復号するクラスを読み込む
 import java.net.URLDecoder;
 // 文字コードを指定するクラスを読み込む
 import java.nio.charset.StandardCharsets;
-// ファイルを読み書きするクラスを読み込む
-import java.nio.file.Files;
-// ファイルの場所を表すクラスを読み込む
-import java.nio.file.Path;
 // 可変長リストを扱うクラスを読み込む
 import java.util.ArrayList;
 // リストのインターフェースを読み込む
 import java.util.List;
+// ★変更 データベース接続を扱うクラスを読み込む
+import java.sql.Connection;
+// ★変更 データベース接続を作成するクラスを読み込む
+import java.sql.DriverManager;
+// ★変更 SQL実行時のエラーを扱うクラスを読み込む
+import java.sql.SQLException;
+// ★変更 パラメーター付きSQLを扱うクラスを読み込む
+import java.sql.PreparedStatement;
+// ★変更 SELECT結果を扱うクラスを読み込む
+import java.sql.ResultSet;
 
 // Todoアプリケーションの処理を定義する
 public class App {
-    // ★変更 List と、次に振る番号を main の外に置く
-    static List<Todo> todos = new ArrayList<>();
-    // ★変更 次に振る番号は 1 から始める
-    static int nextId = 1;
+    // ★変更 SQLiteデータベースの接続先を指定する
+    static final String DB_URL = "jdbc:sqlite:todos.db";
 
     // アプリケーションを起動する
     public static void main(String[] args) throws Exception {
-        // ★変更 起動時に保存済みのTodoを読み込む
-        load();
+        // ★変更 起動時にSQLiteのtodos表を準備する
+        initializeDatabase();
 
         // 8080番ポートでHTTPサーバーを作成する
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
@@ -53,12 +55,8 @@ public class App {
                 String title = URLDecoder.decode(value, StandardCharsets.UTF_8);
                 // タイトルが空でない場合だけTodoを追加する
                 if (!title.isEmpty()) {
-                    // ★変更 フォームの内容からTodoを1件作ってListに追加する
-                    todos.add(new Todo(nextId, title));
-                    // ★変更 次のTodoに使う番号を進める
-                    nextId++;
-                    // ★変更 Todoを追加した一覧をファイルに保存する
-                    save();
+                    // ★変更 フォームの内容をSQLiteへINSERTする
+                    insertTodo(title);
                     // Todo追加処理の条件分岐を終了する
                 }
                 // 一覧ページへのリダイレクト先を設定する
@@ -80,28 +78,12 @@ public class App {
                     // ★追加 /done なら完了にする
                     // 完了操作かどうかを判定する
                     if (path.equals("/done")) {
-                        // ★変更 idが一致したTodoを探す
-                        Todo todo = findTodoById(id);
-                        // ★変更 見つかったTodoの完了状態を反転する
-                        if (todo != null) {
-                            // ★変更 Todoの完了状態を反転して切り替える
-                            todo.setDone(!todo.isDone());
-                            // ★変更 完了状態を変更した一覧をファイルに保存する
-                            save();
-                        // ★変更 Todoが見つかった場合の処理を終了する
-                        }
+                        // ★変更 指定したTodoの完了状態をSQLiteでUPDATEする
+                        updateTodo(id);
                         // 完了操作でない場合は削除操作を行う
                     } else {
-                        // ★変更 idが一致したTodoを探す
-                        Todo todo = findTodoById(id);
-                        // ★変更 見つかったTodoをListから削除する
-                        if (todo != null) {
-                            // ★変更 Todoを一覧から削除する
-                            todos.remove(todo);
-                            // ★変更 Todoを削除した一覧をファイルに保存する
-                            save();
-                        // ★変更 Todoが見つかった場合の処理を終了する
-                        }
+                        // ★変更 指定したTodoをSQLiteからDELETEする
+                        deleteTodo(id);
                         // 完了または削除の分岐を終了する
                     }
                     // idの有無による条件分岐を終了する
@@ -118,6 +100,8 @@ public class App {
                 // 一覧ページのリクエストかどうかを判定する
             } else if (path.equals("/")) {
                 // 一覧ページの先頭HTMLを作成する
+                // ★変更 SQLiteからSELECTしたTodo一覧を取得する
+                List<Todo> todos = findAllTodos();
                 String html = "<head><style>body{max-width:600px;margin:20px auto;padding:0 16px;font-size:16px}</style></head><body>"
                         // ページの見出しを表示する
                         + "<h1>わたしのTodo</h1>"
@@ -183,101 +167,108 @@ public class App {
     // mainメソッドを終了する
     }
 
-    // ★追加 Todo一覧をtodos.csvへUTF-8で保存する
-    static void save() {
-        // ★追加 ファイル保存時のエラーを処理する
-        try {
-            // ★追加 CSV形式の本文を作る
-            StringBuilder csv = new StringBuilder();
-            // ★追加 Todo一覧を1件ずつCSV本文に追加する
-            for (Todo todo : todos) {
-                // ★追加 id、完了状態、タイトルの順で1行を追加する
-                csv.append(todo.getId()).append(",")
-                        .append(todo.isDone() ? "1" : "0").append(",")
-                        .append(todo.getTitle()).append(System.lineSeparator());
-            }
-            // ★追加 Todo一覧をUTF-8のtodos.csvへ書き出す
-            Files.writeString(Path.of("todos.csv"), csv.toString(), StandardCharsets.UTF_8);
-        // ★追加 ファイル保存に失敗した場合を処理する
-        } catch (IOException e) {
-            // ★追加 保存失敗を実行時エラーとして知らせる
-            throw new RuntimeException("todos.csvの保存に失敗しました", e);
-        // ★追加 ファイル保存処理を終了する
+    // ★追加 SQLiteのtodos表を作成する
+    static void initializeDatabase() {
+        // ★追加 データベース接続とSQL文を自動的に閉じる
+        try (Connection connection = DriverManager.getConnection(DB_URL);
+             PreparedStatement statement = connection.prepareStatement(
+                     "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY, title TEXT, done INTEGER)")) {
+            // ★追加 todos表を作成するSQLを実行する
+            statement.executeUpdate();
+        // ★追加 データベース処理のエラーを扱う
+        } catch (SQLException e) {
+            // ★追加 データベース初期化の失敗を知らせる
+            throw new RuntimeException("SQLiteの初期化に失敗しました", e);
+        // ★追加 データベース初期化処理を終了する
         }
-    // ★追加 saveメソッドを終了する
+    // ★追加 initializeDatabaseメソッドを終了する
     }
 
-    // ★追加 todos.csvからTodo一覧を読み込む
-    static void load() {
-        // ★追加 ファイル読み込み時のエラーを処理する
-        try {
-            // ★追加 起動時の一覧を空にする
-            todos.clear();
-            // ★追加 Todo番号を初期値に戻す
-            nextId = 1;
-            // ★追加 保存ファイルの場所を指定する
-            Path file = Path.of("todos.csv");
-            // ★追加 保存ファイルがなければ空の一覧のまま終了する
-            if (!Files.exists(file)) {
-                // ★追加 保存ファイルがない場合の読み込みを終了する
-                return;
-            }
-            // ★追加 CSVファイルをUTF-8で1行ずつ読み込む
-            for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
-                // ★追加 空行を読み飛ばす
-                if (line.isEmpty()) {
-                    // ★追加 空行の処理を終了する
-                    continue;
-                }
-                // ★追加 id、完了状態、タイトルの3項目に分ける
-                String[] fields = line.split(",", 3);
-                // ★追加 項目数が3つでない行を読み飛ばす
-                if (fields.length != 3) {
-                    // ★追加 不正な行の処理を終了する
-                    continue;
-                }
-                // ★追加 文字列のidを整数に変換する
-                int id = Integer.parseInt(fields[0]);
-                // ★追加 1を完了済み、0を未完了として読み込む
-                boolean done = fields[1].equals("1");
-                // ★追加 読み込んだ内容でTodoを作成する
-                Todo todo = new Todo(id, fields[2]);
-                // ★追加 読み込んだ完了状態をTodoに設定する
-                todo.setDone(done);
+    // ★追加 TodoをINSERTでSQLiteへ追加する
+    static void insertTodo(String title) {
+        // ★追加 INSERT文と接続を自動的に閉じる
+        try (Connection connection = DriverManager.getConnection(DB_URL);
+             PreparedStatement statement = connection.prepareStatement(
+                     "INSERT INTO todos (title, done) VALUES (?, 0)")) {
+            // ★追加 TodoタイトルをSQLの値として設定する
+            statement.setString(1, title);
+            // ★追加 INSERT文を実行する
+            statement.executeUpdate();
+        // ★追加 Todo追加処理のエラーを扱う
+        } catch (SQLException e) {
+            // ★追加 Todo追加の失敗を知らせる
+            throw new RuntimeException("Todoの追加に失敗しました", e);
+        // ★追加 Todo追加処理を終了する
+        }
+    // ★追加 insertTodoメソッドを終了する
+    }
+
+    // ★追加 Todoの完了状態をUPDATEで反転する
+    static void updateTodo(int id) {
+        // ★追加 UPDATE文と接続を自動的に閉じる
+        try (Connection connection = DriverManager.getConnection(DB_URL);
+             PreparedStatement statement = connection.prepareStatement(
+                     "UPDATE todos SET done = CASE done WHEN 0 THEN 1 ELSE 0 END WHERE id = ?")) {
+            // ★追加 更新対象のTodo番号をSQLの値として設定する
+            statement.setInt(1, id);
+            // ★追加 UPDATE文を実行する
+            statement.executeUpdate();
+        // ★追加 Todo更新処理のエラーを扱う
+        } catch (SQLException e) {
+            // ★追加 Todo更新の失敗を知らせる
+            throw new RuntimeException("Todoの更新に失敗しました", e);
+        // ★追加 Todo更新処理を終了する
+        }
+    // ★追加 updateTodoメソッドを終了する
+    }
+
+    // ★追加 TodoをDELETEでSQLiteから削除する
+    static void deleteTodo(int id) {
+        // ★追加 DELETE文と接続を自動的に閉じる
+        try (Connection connection = DriverManager.getConnection(DB_URL);
+             PreparedStatement statement = connection.prepareStatement(
+                     "DELETE FROM todos WHERE id = ?")) {
+            // ★追加 削除対象のTodo番号をSQLの値として設定する
+            statement.setInt(1, id);
+            // ★追加 DELETE文を実行する
+            statement.executeUpdate();
+        // ★追加 Todo削除処理のエラーを扱う
+        } catch (SQLException e) {
+            // ★追加 Todo削除の失敗を知らせる
+            throw new RuntimeException("Todoの削除に失敗しました", e);
+        // ★追加 Todo削除処理を終了する
+        }
+    // ★追加 deleteTodoメソッドを終了する
+    }
+
+    // ★追加 SELECTでSQLiteからTodo一覧を取得する
+    static List<Todo> findAllTodos() {
+        // ★追加 読み込んだTodoを入れる一覧を作る
+        List<Todo> result = new ArrayList<>();
+        // ★追加 SELECT文と接続と結果を自動的に閉じる
+        try (Connection connection = DriverManager.getConnection(DB_URL);
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT id, title, done FROM todos ORDER BY id");
+             ResultSet rows = statement.executeQuery()) {
+            // ★追加 SELECT結果を1行ずつTodoに変換する
+            while (rows.next()) {
+                // ★追加 SELECT結果からTodoを作成する
+                Todo todo = new Todo(rows.getInt("id"), rows.getString("title"));
+                // ★追加 SELECT結果の完了状態をTodoに設定する
+                todo.setDone(rows.getInt("done") == 1);
                 // ★追加 読み込んだTodoを一覧に追加する
-                todos.add(todo);
-                // ★追加 最大idの次の番号をnextIdに設定する
-                if (id >= nextId) {
-                    // ★追加 重複しない次のTodo番号を設定する
-                    nextId = id + 1;
-                // ★追加 最大id判定の条件分岐を終了する
-                }
-            // ★追加 CSV行の読み込みを終了する
+                result.add(todo);
+            // ★追加 SELECT結果の読み込みを終了する
             }
-        // ★追加 ファイル読み込みに失敗した場合を処理する
-        } catch (IOException | NumberFormatException e) {
-            // ★追加 読み込み失敗を実行時エラーとして知らせる
-            throw new RuntimeException("todos.csvの読み込みに失敗しました", e);
-        // ★追加 ファイル読み込み処理を終了する
+        // ★追加 Todo一覧取得のエラーを扱う
+        } catch (SQLException e) {
+            // ★追加 Todo一覧取得の失敗を知らせる
+            throw new RuntimeException("Todo一覧の取得に失敗しました", e);
+        // ★追加 Todo一覧取得処理を終了する
         }
-    // ★追加 loadメソッドを終了する
-    }
-
-    // ★追加 idからTodoを1件探す
-    static Todo findTodoById(int id) {
-        // ★追加 Todo一覧を先頭から検索する
-        for (Todo todo : todos) {
-            // ★追加 Todoのidが指定値と一致するか判定する
-            if (todo.getId() == id) {
-                // ★追加 一致したTodoを返す
-                return todo;
-            // ★追加 id一致の条件分岐を終了する
-            }
-        // ★追加 Todo検索の繰り返しを終了する
-        }
-        // ★追加 見つからなかったことをnullで示す
-        return null;
-    // ★追加 findTodoByIdメソッドを終了する
+        // ★追加 SELECTしたTodo一覧を返す
+        return result;
+    // ★追加 findAllTodosメソッドを終了する
     }
 
     // ★追加 query 文字列から id を読む
