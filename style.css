@@ -1,0 +1,52 @@
+/* ページ全体を淡いピンクの用紙風に整える */
+body { box-sizing: border-box; max-width: 760px; min-height: calc(100vh - 48px); margin: 24px auto; padding: 46px 52px 54px; background: #f8eef0; color: #6d1724; font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif; font-size: 16px; }
+/* 見出しを画像のように中央へ大きく配置する */
+h1 { margin: 0 0 34px; color: #831522; text-align: center; font-family: Georgia, "Yu Mincho", serif; font-size: 52px; font-weight: 400; letter-spacing: .08em; text-transform: uppercase; }
+/* 入力フォームを一覧上部に横並びで配置する */
+form { display: flex; gap: 12px; margin: 0 0 24px; }
+/* 入力欄を白い丸みのあるラインとして表示する */
+input { box-sizing: border-box; flex: 1; min-width: 0; padding: 11px 18px; background: #fffafb; border: 1px solid #e0b8c0; border-radius: 999px; color: #6d1724; font: inherit; outline: 0; }
+/* 入力中は入力欄の枠を濃く表示する */
+input:focus { border-color: #bd7180; box-shadow: 0 0 0 3px #f1d9de; }
+/* 追加ボタンを濃いピンクの丸いボタンとして表示する */
+button { padding: 9px 20px; background: #8d1d2c; border: 0; border-radius: 999px; color: #fff; font: inherit; cursor: pointer; }
+/* 追加ボタンにマウスを乗せたとき色を変える */
+button:hover { background: #aa3042; }
+/* Todo一覧の標準箇条書きを解除する */
+ul { margin: 0; padding: 0; list-style: none; }
+/* Todoの全件数と完了件数を右寄せで表示する */
+.summary { margin: 0 0 12px; color: #9a5360; text-align: right; font-family: Arial, sans-serif; font-size: 13px; }
+/* Todoを丸みのある色付きカードとして表示する */
+li { display: flex; align-items: center; gap: 10px; min-height: 42px; margin: 12px 0; padding: 9px 16px; border-radius: 999px; color: #673743; line-height: 1.5; }
+/* Todo行の左側に画像のチェック欄を再現する */
+li::before { box-sizing: border-box; width: 19px; height: 19px; flex: 0 0 19px; border: 2px solid #bd7180; border-radius: 4px; content: ""; }
+/* 完了済みTodoのチェック欄にチェックマークを表示する */
+li.done::before { display: flex; align-items: center; justify-content: center; background: #bd7180; color: #fff; content: "✓"; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; }
+/* Todo行を水色・ピンク・薄紫で交互に表示する */
+li:nth-child(3n + 1) { background: #c9ddeb; }
+/* Todo行の2色目を淡いピンクにする */
+li:nth-child(3n + 2) { background: #f0d0d7; }
+/* Todo行の3色目を淡いローズにする */
+li:nth-child(3n) { background: #dfc1c8; }
+/* Todoタイトルが行の残り幅を使うようにする */
+li > span:first-child { flex: 1; }
+/* 操作リンクを背景に合う落ち着いた色で表示する */
+li > a { color: #7d3a48; font-family: Arial, sans-serif; font-size: 13px; text-decoration: none; white-space: nowrap; }
+/* 操作リンクにマウスを乗せたとき下線を表示する */
+li > a:hover { color: #541722; text-decoration: underline; }
+/* 画面が狭い場合の一覧レイアウトを設定する */
+@media (max-width: 600px) {
+    /* 小さい画面ではページの余白を狭くする */
+    body { min-height: calc(100vh - 24px); margin: 12px; padding: 32px 18px 40px; }
+    /* 小さい画面では見出しを少し小さくする */
+    h1 { margin-bottom: 28px; font-size: 38px; }
+    /* 小さい画面ではフォームの間隔を狭くする */
+    form { gap: 8px; }
+    /* 小さい画面では追加ボタンの横幅を抑える */
+    button { padding: 9px 14px; }
+    /* 小さい画面ではTodo行の文字と間隔を調整する */
+    li { gap: 7px; padding: 9px 12px; font-size: 15px; }
+    /* 小さい画面では操作リンクを少し小さくする */
+    li > a { font-size: 12px; }
+/* 画面幅対応のCSSを終了する */
+}

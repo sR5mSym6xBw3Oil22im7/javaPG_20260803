@@ -7,6 +7,10 @@ import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 // 文字コードを指定するクラスを読み込む
 import java.nio.charset.StandardCharsets;
+// CSSファイルを読み込むクラス
+import java.nio.file.Files;
+// ファイルの場所を扱うクラス
+import java.nio.file.Path;
 // 可変長リストを扱うクラスを読み込む
 import java.util.ArrayList;
 // リストのインターフェースを読み込む
@@ -115,7 +119,19 @@ public class App {
                 // 一覧ページの先頭HTMLを作成する
                 // ★変更 SQLiteからSELECTしたTodo一覧を取得する
                 List<Todo> todos = findAllTodos();
-                String html = "<head><style>body{max-width:600px;margin:20px auto;padding:0 16px;font-size:16px}</style></head><body>"
+                // ★追加 完了済みTodoの件数を数える
+                int completedCount = 0;
+                // ★追加 Todo一覧から完了済みの件数を集計する
+                for (Todo todo : todos) {
+                    // ★追加 完了済みTodoだけ件数を増やす
+                    if (todo.isDone()) {
+                        // ★追加 完了件数を1件増やす
+                        completedCount++;
+                    }
+                }
+                // ★変更 添付画像を参考に一覧ページのモノトーンCSSを設定する
+                // ★変更 外部CSSを読み込む一覧ページのHTMLを作成する
+                String html = "<head><meta name='viewport' content='width=device-width, initial-scale=1'><link rel='stylesheet' href='/style.css'></head><body>"
                         // ページの見出しを表示する
                         + "<h1>わたしのTodo</h1>"
                 // Todo入力フォームをHTMLに追加する
@@ -124,6 +140,8 @@ public class App {
                         + "<input name='todo'><button>追加</button>"
                 // 入力フォームの終了タグをHTMLに追加する
                         + "</form>";
+                // ★追加 Todo全件数と完了件数を表示する
+                html += "<p class='summary'>" + todos.size() + "件中" + completedCount + "件 完了</p>";
                 // Todoが0件のときだけ空一覧のメッセージを追加する
                 if (todos.isEmpty()) {
                     // 空一覧のメッセージを表示する
@@ -135,17 +153,8 @@ public class App {
                 // ★追加 各 Todo の横に完了と削除のリンクを付ける
                 // Todo一覧を順番にHTMLへ追加する
                 for (Todo todo : todos) {
-                    // 未完了Todoの表示記号を空にする
-                    String mark = "";
-                    // Todoが完了済みか確認する
-                    // Todoが完了済みかどうかを判定する
-                    if (todo.isDone()) {
-                        // 完了済みTodoの表示記号を設定する
-                        mark = " ✔";
-                        // 完了状態の条件分岐を終了する
-                    }
                     // ★追加 表示するTodoタイトルを用意する
-                    String title = todo.getTitle();
+                    String title = "<span>" + todo.getTitle() + "</span>";
                     // ★追加 完了済みで削除待ちのTodoだけに取消線を付ける
                     if (todo.isDone() && todo.isDeleteMarked()) {
                         // ★追加 Todoタイトルを取消線付きのHTMLで包む
@@ -155,12 +164,14 @@ public class App {
                     String deleteLink = "<a href='/delete?id=" + todo.getId() + "'>削除</a>";
                     // ★変更 未完了または取消線付きTodoに削除確認を表示する
                     if (!todo.isDone() || todo.isDeleteMarked()) {
-                        // ★追加 削除確認を許可した場合だけリンクを実行する
+                    // ★追加 削除確認を許可した場合だけリンクを実行する
                         deleteLink = "<a href='/delete?id=" + todo.getId()
                                 + "' onclick=\"return confirm('削除してよいですか？');\">削除</a>";
                     }
+                    // ★追加 完了状態に応じたTodo行のCSSクラスを用意する
+                    String todoClass = todo.isDone() ? "todo done" : "todo";
                     // ★変更 id つきのリンクを Todo の横に表示する
-                    html += "<li>" + title + mark + " <a href='/done?id=" + todo.getId()
+                    html += "<li class='" + todoClass + "'>" + title + " <a href='/done?id=" + todo.getId()
                             + "'>完了</a> " + deleteLink + "</li>";
                     // Todo一覧の繰り返しを終了する
                 }
@@ -186,6 +197,20 @@ public class App {
             // レスポンス本文を閉じる
             exchange.getResponseBody().close();
         // リクエスト処理の登録を終了する
+        });
+
+        // CSSファイルへのリクエスト処理を登録する
+        server.createContext("/style.css", exchange -> {
+            // CSSファイルをUTF-8のバイト列として読み込む
+            byte[] responseBody = Files.readAllBytes(Path.of("style.css"));
+            // CSSレスポンスの文字コードを設定する
+            exchange.getResponseHeaders().set("Content-Type", "text/css; charset=UTF-8");
+            // CSSレスポンスのヘッダーを送信する
+            exchange.sendResponseHeaders(200, responseBody.length);
+            // CSSレスポンスの本文を書き込む
+            exchange.getResponseBody().write(responseBody);
+            // CSSレスポンスを閉じる
+            exchange.getResponseBody().close();
         });
 
         // ★追加 JSON APIへのリクエスト処理を登録する
