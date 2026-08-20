@@ -96,7 +96,7 @@ public class App {
             // タイトルが空でない場合だけ追加する
             if (!title.isEmpty()) {
                 // Todoを追加する
-                insertTodo(title, values.getOrDefault("deadline", ""), values.getOrDefault("category", ""), values.getOrDefault("tags", ""));
+                insertTodo(title, values.getOrDefault("deadline", ""), values.getOrDefault("category", ""), values.getOrDefault("tags", ""), values.getOrDefault("priority", "中"));
             }
             // 一覧へ戻る
             redirect(exchange, "/");
@@ -110,7 +110,7 @@ public class App {
             // Todo番号が正しい場合だけ更新する
             if (id != null) {
                 // Todoを更新する
-                updateTodo(id, values.getOrDefault("title", "").trim(), values.getOrDefault("deadline", ""), values.getOrDefault("category", ""), values.getOrDefault("tags", ""));
+                updateTodo(id, values.getOrDefault("title", "").trim(), values.getOrDefault("deadline", ""), values.getOrDefault("category", ""), values.getOrDefault("tags", ""), values.getOrDefault("priority", "中"));
             }
             // 一覧へ戻る
             redirect(exchange, "/");
@@ -180,7 +180,7 @@ public class App {
     // データベースを初期化する
     static void initializeDatabase() {
         // Todoテーブルを作成する
-        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0, delete_marked INTEGER NOT NULL DEFAULT 0, deadline TEXT NOT NULL DEFAULT '', category TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL DEFAULT 0)")) {
+        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0, delete_marked INTEGER NOT NULL DEFAULT 0, deadline TEXT NOT NULL DEFAULT '', category TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '', priority TEXT NOT NULL DEFAULT '中', created_at INTEGER NOT NULL DEFAULT 0)")) {
             // テーブル作成SQLを実行する
             statement.executeUpdate();
         // 初期化エラーを扱う
@@ -188,12 +188,20 @@ public class App {
             // 初期化失敗を通知する
             throw new RuntimeException("データベースの初期化に失敗しました", e);
         }
+        // 既存データベースへ優先度列を追加する
+        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("ALTER TABLE todos ADD COLUMN priority TEXT NOT NULL DEFAULT '中'")) {
+            // 優先度列の追加SQLを実行する
+            statement.executeUpdate();
+        // 既に列が存在する場合は処理を続ける
+        } catch (SQLException e) {
+            // 既存列によるエラーを無視する
+        }
     }
 
     // Todoを追加する
-    static void insertTodo(String title, String deadline, String category, String tags) {
+    static void insertTodo(String title, String deadline, String category, String tags, String priority) {
         // Todo追加SQLを準備する
-        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("INSERT INTO todos (title, done, delete_marked, deadline, category, tags, created_at) VALUES (?, 0, 0, ?, ?, ?, ?)")) {
+        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("INSERT INTO todos (title, done, delete_marked, deadline, category, tags, priority, created_at) VALUES (?, 0, 0, ?, ?, ?, ?, ?)")) {
             // タイトルを設定する
             statement.setString(1, title);
             // 締め切りを設定する
@@ -202,8 +210,10 @@ public class App {
             statement.setString(3, category);
             // タグを設定する
             statement.setString(4, tags);
+            // 優先度を設定する
+            statement.setString(5, priority);
             // 作成日時を設定する
-            statement.setLong(5, System.currentTimeMillis());
+            statement.setLong(6, System.currentTimeMillis());
             // 追加SQLを実行する
             statement.executeUpdate();
         // 追加エラーを扱う
@@ -214,14 +224,14 @@ public class App {
     }
 
     // Todoを更新する
-    static void updateTodo(int id, String title, String deadline, String category, String tags) {
+    static void updateTodo(int id, String title, String deadline, String category, String tags, String priority) {
         // 空タイトルの場合は更新しない
         if (title.isEmpty()) {
             // 更新処理を終了する
             return;
         }
         // Todo更新SQLを準備する
-        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("UPDATE todos SET title = ?, deadline = ?, category = ?, tags = ? WHERE id = ?")) {
+        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("UPDATE todos SET title = ?, deadline = ?, category = ?, tags = ?, priority = ? WHERE id = ?")) {
             // タイトルを設定する
             statement.setString(1, title);
             // 締め切りを設定する
@@ -230,8 +240,10 @@ public class App {
             statement.setString(3, category);
             // タグを設定する
             statement.setString(4, tags);
+            // 優先度を設定する
+            statement.setString(5, priority);
             // Todo番号を設定する
-            statement.setInt(5, id);
+            statement.setInt(6, id);
             // 更新SQLを実行する
             statement.executeUpdate();
         // 更新エラーを扱う
@@ -276,11 +288,11 @@ public class App {
         // 取得結果を作る
         List<AppTodo> result = new ArrayList<>();
         // Todo取得SQLを実行する
-        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("SELECT id, title, done, deadline, category, tags, created_at FROM todos ORDER BY created_at DESC, id DESC"); ResultSet rows = statement.executeQuery()) {
+        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("SELECT id, title, done, deadline, category, tags, priority, created_at FROM todos ORDER BY created_at DESC, id DESC"); ResultSet rows = statement.executeQuery()) {
             // 検索結果を順番に処理する
             while (rows.next()) {
                 // データベース行からTodoを作る
-                AppTodo todo = new AppTodo(rows.getInt("id"), rows.getString("title"), rows.getInt("done") == 1, rows.getString("deadline"), rows.getString("category"), rows.getString("tags"), rows.getLong("created_at"));
+                AppTodo todo = new AppTodo(rows.getInt("id"), rows.getString("title"), rows.getInt("done") == 1, rows.getString("deadline"), rows.getString("category"), rows.getString("tags"), rows.getString("priority"), rows.getLong("created_at"));
                 // 状態条件に合わないTodoを除外する
                 if ((status.equals("active") && todo.done) || (status.equals("completed") && !todo.done)) {
                     // 次のTodoへ進む
@@ -305,15 +317,38 @@ public class App {
             throw new RuntimeException("Todoの取得に失敗しました", e);
         }
         // 名前順が指定された場合に並べ替える
+        // 名前順以外は優先度順に並べ替える
+        if (!sort.equals("name")) {
+            // 高・中・低の順に並べ替える
+            result.sort(Comparator.comparingInt(todo -> priorityRank(todo.priority)));
+        }
+        // 名前順が指定された場合は優先度内で並べ替える
         if (sort.equals("name")) {
             // タイトルの昇順に並べ替える
-            result.sort(Comparator.comparing(todo -> todo.title, String.CASE_INSENSITIVE_ORDER));
+            result.sort(Comparator.comparingInt((AppTodo todo) -> priorityRank(todo.priority)).thenComparing(todo -> todo.title, String.CASE_INSENSITIVE_ORDER));
         }
         // 検索結果を返す
         return result;
     }
 
     // 一覧画面を作成する
+    // 優先度を並び替え用の数値へ変換する
+    static int priorityRank(String priority) {
+        // 高を最優先として返す
+        if (priority.equals("高")) {
+            // 高の順位を返す
+            return 0;
+        }
+        // 低を最後として返す
+        if (priority.equals("低")) {
+            // 低の順位を返す
+            return 2;
+        }
+        // 中を標準順位として返す
+        return 1;
+    }
+
+    // 一覧画面のHTMLを作成する
     static String renderPage(List<AppTodo> todos, Map<String, String> values) {
         // 表示状態を取得する
         String status = values.getOrDefault("status", "all");
@@ -326,7 +361,7 @@ public class App {
         // 参考画像に合わせた紙面レイアウトのHTMLを開始する
         StringBuilder html = new StringBuilder("<html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1'><link rel='stylesheet' href='/style.css?v=3'><title>To-do List</title></head><body><main class='sheet'><header class='page-header'><p class='eyebrow'>✦ PLAN · DO · SHINE ✦</p><h1>To-do <em>List</em> ♡</h1><p class='date-line'>Plan your day, achieve your goals.</p></header>");
         // Todo追加フォームを表示する
-        html.append("<form class='add-form' method='post' action='/add'><input name='title' placeholder='新しいタスクを入力' required><input type='date' name='deadline'><input name='category' placeholder='カテゴリ'><input name='tags' placeholder='タグ'><button>追加</button></form>");
+        html.append("<form class='add-form' method='post' action='/add'><input name='title' placeholder='新しいタスクを入力' required><input type='date' name='deadline'><input name='category' placeholder='カテゴリ'><input name='tags' placeholder='タグ'><select name='priority' aria-label='優先度'><option value='高'>高</option><option value='中' selected>中</option><option value='低'>低</option></select><button>追加</button></form>");
         // 一覧操作を独立したセクションとして開始する
         html.append("<section class='list-controls'><div class='section-heading'><span class='summary'>").append(todos.size()).append("件</span></div>");
         // 絞り込みフォームを一覧操作エリアに表示する
@@ -340,7 +375,7 @@ public class App {
             // 完了済みのクラスを設定する
             String cssClass = todo.done ? "todo done" : "todo";
             // Todo編集行を追加する
-            html.append("<li class='todo-row ").append(cssClass).append("'><span class='check-box'></span><form class='edit-form' method='post' action='/edit'><input type='hidden' name='id' value='").append(todo.id).append("'><input name='title' value='").append(escapeHtml(todo.title)).append("' required><input type='date' name='deadline' value='").append(escapeHtml(todo.deadline)).append("'> <input name='category' value='").append(escapeHtml(todo.category)).append("' placeholder='カテゴリ'><input name='tags' value='").append(escapeHtml(todo.tags)).append("' placeholder='タグ'><button>保存</button></form><span class='meta'>締め切り: ").append(todo.deadline.isBlank() ? "未設定" : escapeHtml(todo.deadline)).append(" / ").append(todo.category.isBlank() ? "未分類" : escapeHtml(todo.category)).append(" / ").append(todo.tags.isBlank() ? "タグなし" : escapeHtml(todo.tags)).append("</span><span class='actions'><a href='/done?id=").append(todo.id).append("'>").append(todo.done ? "未完了に戻す" : "完了").append("</a> <a href='/delete?id=").append(todo.id).append("' onclick=\"return confirm('削除しますか？')\">削除</a></span></li>");
+            html.append("<li class='todo-row ").append(cssClass).append("'><span class='check-box'></span><form class='edit-form' method='post' action='/edit'><input type='hidden' name='id' value='").append(todo.id).append("'><input name='title' value='").append(escapeHtml(todo.title)).append("' required><input type='date' name='deadline' value='").append(escapeHtml(todo.deadline)).append("'> <input name='category' value='").append(escapeHtml(todo.category)).append("' placeholder='カテゴリ'><input name='tags' value='").append(escapeHtml(todo.tags)).append("' placeholder='タグ'><select name='priority' aria-label='優先度'><option value='高'").append(todo.priority.equals("高") ? " selected" : "").append(">高</option><option value='中'").append(todo.priority.equals("中") ? " selected" : "").append(">中</option><option value='低'").append(todo.priority.equals("低") ? " selected" : "").append(">低</option></select><button>保存</button></form><span class='meta'>締め切り: ").append(todo.deadline.isBlank() ? "未設定" : escapeHtml(todo.deadline)).append(" / ").append(todo.category.isBlank() ? "未分類" : escapeHtml(todo.category)).append(" / ").append(todo.tags.isBlank() ? "タグなし" : escapeHtml(todo.tags)).append("</span><span class='actions'><a href='/done?id=").append(todo.id).append("'>").append(todo.done ? "未完了に戻す" : "完了").append("</a> <a href='/delete?id=").append(todo.id).append("' onclick=\"return confirm('削除しますか？')\">削除</a></span></li>");
         }
         // HTMLを閉じる
         // 削除リンクから確認ポップアップを取り除く
@@ -468,8 +503,10 @@ class AppTodo {
     final String category;
     // タグを保持する
     final String tags;
+    // 優先度を保持する
+    final String priority;
     // Todoを作成する
-    AppTodo(int id, String title, boolean done, String deadline, String category, String tags, long createdAt) {
+    AppTodo(int id, String title, boolean done, String deadline, String category, String tags, String priority, long createdAt) {
         // Todo番号を設定する
         this.id = id;
         // タイトルを設定する
@@ -482,6 +519,8 @@ class AppTodo {
         this.category = category == null ? "" : category;
         // タグを設定する
         this.tags = tags == null ? "" : tags;
+        // 優先度を設定する
+        this.priority = priority == null ? "中" : priority;
     }
 
     // 検索対象文字列を返す

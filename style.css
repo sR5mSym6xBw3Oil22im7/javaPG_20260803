@@ -15,13 +15,15 @@ body { margin: 0; min-height: 100vh; background-color: #c8c8c8; background-image
 /* 見出し下の説明を白い文字で表示する */
 .date-line { margin: 16px auto 0; color: #fff; font-size: 14px; letter-spacing: .12em; text-shadow: 1px 1px 0 #999; }
 /* 追加フォームを白い入力行として表示する */
-.add-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 9px; margin: 0 0 26px; padding: 10px 18px; background: #fff; border-radius: 999px; box-shadow: 0 5px 0 rgba(150,150,150,.55); }
+.add-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 9px; margin: 0 0 26px; padding: 10px 18px; background: #fff; border-radius: 999px; box-shadow: 0 5px 0 rgba(150,150,150,.55); }
 /* 追加フォームの入力欄を罫線なしで表示する */
-.add-form input { min-width: 0; padding: 8px 5px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font: inherit; font-size: 12px; letter-spacing: -.04em; outline: 0; }
+.add-form input { min-width: 0; padding: 8px 5px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font: inherit; font-size: 12px; letter-spacing: -.04em; outline: 0; text-align: center; }
 /* 日付入力の表示を一列に固定する */
 .add-form input[type="date"] { width: 100%; padding-right: 2px; padding-left: 2px; font-size: 12px; letter-spacing: -.04em; white-space: nowrap; }
 /* 追加ボタンを丸いグレーのボタンにする */
 .add-form button { padding: 9px 20px; background: #a8a8a8; border: 0; border-radius: 999px; color: #fff; font-size: 15px; cursor: pointer; }
+/* 優先度選択欄を入力欄と同じ見た目にする */
+.add-form select, .edit-form select { min-width: 0; padding: 8px 5px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font: inherit; font-size: 12px; letter-spacing: -.04em; text-align: center; }
 /* 操作エリアは通常画面では表示しない */
 .list-controls { display: none; }
 /* Todo一覧の余白を初期化する */
@@ -31,11 +33,11 @@ body { margin: 0; min-height: 100vh; background-color: #c8c8c8; background-image
 /* 不要なチェック欄を表示しない */
 .check-box { display: none; }
 /* 編集フォームを追加フォームと同じ列幅に揃える */
-.edit-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 9px; align-items: center; margin: 0; }
+.edit-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 9px; align-items: center; margin: 0; }
 /* 追加後の文字を小さく揃える */
-.edit-form input[name="title"], .edit-form input[name="category"], .edit-form input[name="tags"] { min-width: 0; padding: 8px 5px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font: inherit; font-size: 12px; letter-spacing: -.04em; outline: 0; }
+.edit-form input[name="title"], .edit-form input[name="category"], .edit-form input[name="tags"] { min-width: 0; padding: 8px 5px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font: inherit; font-size: 12px; letter-spacing: -.04em; outline: 0; text-align: center; }
 /* 追加後の日付欄を一列表示にする */
-.edit-form input[type="date"] { width: 100%; min-width: 0; padding: 8px 2px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font-size: 12px; letter-spacing: -.04em; white-space: nowrap; }
+.edit-form input[type="date"] { width: 100%; min-width: 0; padding: 8px 2px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font-size: 12px; letter-spacing: -.04em; text-align: center; white-space: nowrap; }
 /* 保存ボタンを追加ボタンと同じ形にする */
 .edit-form button { padding: 9px 20px; background: #a8a8a8; border: 0; border-radius: 999px; color: #fff; font-size: 15px; cursor: pointer; }
 /* 補足情報をTodoの下に表示する */
@@ -44,10 +46,14 @@ body { margin: 0; min-height: 100vh; background-color: #c8c8c8; background-image
 .actions { display: flex; grid-column: 1; justify-self: center; gap: 16px; margin-top: 2px; }
 /* 操作リンクの色を設定する */
 .actions a { color: #888; font-size: 12px; text-decoration: none; }
-/* 完了済みタイトルの1行目だけに取消線を付ける */
-.todo-row.done .edit-form input[name="title"], .todo-row.done .filter-result-item strong { color: #aaa; text-decoration: line-through; }
-/* 完了済みの補足情報と操作リンクは通常表示にする */
-.todo-row.done .meta, .todo-row.done .actions { text-decoration: none; }
+/* 完了済みTodoの背景と文字色を反転する */
+.todo-row.done { background: #666; color: #fff; }
+/* 完了済みTodoの入力文字から取消線を外して白くする */
+.todo-row.done .edit-form input[name="title"], .todo-row.done .edit-form input[type="date"], .todo-row.done .edit-form input[name="category"], .todo-row.done .edit-form input[name="tags"], .todo-row.done .edit-form select { border-bottom-color: #fff; color: #fff; text-decoration: none; }
+/* 完了済みTodoの補足情報を白く表示する */
+.todo-row.done .meta, .todo-row.done .filter-result-item strong { color: #fff; text-decoration: none; }
+/* 完了済みTodoの操作リンクを白く表示する */
+.todo-row.done .actions, .todo-row.done .actions a { color: #fff; text-decoration: none; }
 /* フッターの余白を確保する */
 .page-footer { min-height: 10px; margin-top: 30px; }
 /* 狭い画面では入力フォームを二列にする */
