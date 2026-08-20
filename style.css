@@ -1,52 +1,71 @@
-/* ページ全体を淡いピンクの用紙風に整える */
-body { box-sizing: border-box; max-width: 760px; min-height: calc(100vh - 48px); margin: 24px auto; padding: 46px 52px 54px; background: #f8eef0; color: #6d1724; font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif; font-size: 16px; }
-/* 見出しを画像のように中央へ大きく配置する */
-h1 { margin: 0 0 34px; color: #831522; text-align: center; font-family: Georgia, "Yu Mincho", serif; font-size: 52px; font-weight: 400; letter-spacing: .08em; text-transform: uppercase; }
-/* 入力フォームを一覧上部に横並びで配置する */
-form { display: flex; gap: 12px; margin: 0 0 24px; }
-/* 入力欄を白い丸みのあるラインとして表示する */
-input { box-sizing: border-box; flex: 1; min-width: 0; padding: 11px 18px; background: #fffafb; border: 1px solid #e0b8c0; border-radius: 999px; color: #6d1724; font: inherit; outline: 0; }
-/* 入力中は入力欄の枠を濃く表示する */
-input:focus { border-color: #bd7180; box-shadow: 0 0 0 3px #f1d9de; }
-/* 追加ボタンを濃いピンクの丸いボタンとして表示する */
-button { padding: 9px 20px; background: #8d1d2c; border: 0; border-radius: 999px; color: #fff; font: inherit; cursor: pointer; }
-/* 追加ボタンにマウスを乗せたとき色を変える */
-button:hover { background: #aa3042; }
-/* Todo一覧の標準箇条書きを解除する */
-ul { margin: 0; padding: 0; list-style: none; }
-/* Todoの全件数と完了件数を右寄せで表示する */
-.summary { margin: 0 0 12px; color: #9a5360; text-align: right; font-family: Arial, sans-serif; font-size: 13px; }
-/* Todoを丸みのある色付きカードとして表示する */
-li { display: flex; align-items: center; gap: 10px; min-height: 42px; margin: 12px 0; padding: 9px 16px; border-radius: 999px; color: #673743; line-height: 1.5; }
-/* Todo行の左側に画像のチェック欄を再現する */
-li::before { box-sizing: border-box; width: 19px; height: 19px; flex: 0 0 19px; border: 2px solid #bd7180; border-radius: 4px; content: ""; }
-/* 完了済みTodoのチェック欄にチェックマークを表示する */
-li.done::before { display: flex; align-items: center; justify-content: center; background: #bd7180; color: #fff; content: "✓"; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; }
-/* Todo行を水色・ピンク・薄紫で交互に表示する */
-li:nth-child(3n + 1) { background: #c9ddeb; }
-/* Todo行の2色目を淡いピンクにする */
-li:nth-child(3n + 2) { background: #f0d0d7; }
-/* Todo行の3色目を淡いローズにする */
-li:nth-child(3n) { background: #dfc1c8; }
-/* Todoタイトルが行の残り幅を使うようにする */
-li > span:first-child { flex: 1; }
-/* 操作リンクを背景に合う落ち着いた色で表示する */
-li > a { color: #7d3a48; font-family: Arial, sans-serif; font-size: 13px; text-decoration: none; white-space: nowrap; }
-/* 操作リンクにマウスを乗せたとき下線を表示する */
-li > a:hover { color: #541722; text-decoration: underline; }
-/* 画面が狭い場合の一覧レイアウトを設定する */
-@media (max-width: 600px) {
-    /* 小さい画面ではページの余白を狭くする */
-    body { min-height: calc(100vh - 24px); margin: 12px; padding: 32px 18px 40px; }
-    /* 小さい画面では見出しを少し小さくする */
-    h1 { margin-bottom: 28px; font-size: 38px; }
-    /* 小さい画面ではフォームの間隔を狭くする */
-    form { gap: 8px; }
-    /* 小さい画面では追加ボタンの横幅を抑える */
-    button { padding: 9px 14px; }
-    /* 小さい画面ではTodo行の文字と間隔を調整する */
-    li { gap: 7px; padding: 9px 12px; font-size: 15px; }
-    /* 小さい画面では操作リンクを少し小さくする */
-    li > a { font-size: 12px; }
-/* 画面幅対応のCSSを終了する */
+/* すべての要素のサイズ計算を統一する */
+* { box-sizing: border-box; }
+/* 画像1を参考にグレーの背景と模様を作る */
+body { margin: 0; min-height: 100vh; background-color: #c8c8c8; background-image: radial-gradient(circle, rgba(255,255,255,.55) 2px, transparent 3px), linear-gradient(45deg, transparent 46%, rgba(255,255,255,.3) 47%, rgba(255,255,255,.3) 53%, transparent 54%); background-size: 38px 38px, 38px 38px; color: #555; font-family: Arial, "Yu Gothic", sans-serif; }
+/* 中央のTodo用紙を配置する */
+.sheet { width: min(94vw, 860px); min-height: calc(100vh - 48px); margin: 24px auto; padding: 48px 5% 38px; background: rgba(238,238,238,.22); }
+/* 見出し領域を中央に揃える */
+.page-header { margin-bottom: 34px; text-align: center; }
+/* 見出し上の飾りを控えめに表示する */
+.eyebrow { margin: 0 0 7px; color: #fff; font-size: 12px; letter-spacing: .28em; text-shadow: 1px 1px 0 #a5a5a5; }
+/* 白い立体文字風のタイトルを作る */
+.page-header h1 { margin: 0; color: #fff; font-family: "Trebuchet MS", Arial, sans-serif; font-size: clamp(42px, 8vw, 76px); font-weight: 900; letter-spacing: .02em; line-height: 1; text-shadow: 2px 3px 0 #a2a2a2, 4px 5px 0 rgba(255,255,255,.7); text-transform: none; }
+/* タイトルの斜体指定を解除して統一感を出す */
+.page-header h1 em { color: inherit; font-style: normal; font-weight: inherit; }
+/* 見出し下の説明を白い文字で表示する */
+.date-line { margin: 16px auto 0; color: #fff; font-size: 14px; letter-spacing: .12em; text-shadow: 1px 1px 0 #999; }
+/* 追加フォームを白い入力行として表示する */
+.add-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 9px; margin: 0 0 26px; padding: 10px 18px; background: #fff; border-radius: 999px; box-shadow: 0 5px 0 rgba(150,150,150,.55); }
+/* 追加フォームの入力欄を罫線なしで表示する */
+.add-form input { min-width: 0; padding: 8px 5px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font: inherit; font-size: 12px; letter-spacing: -.04em; outline: 0; }
+/* 日付入力の表示を一列に固定する */
+.add-form input[type="date"] { width: 100%; padding-right: 2px; padding-left: 2px; font-size: 12px; letter-spacing: -.04em; white-space: nowrap; }
+/* 追加ボタンを丸いグレーのボタンにする */
+.add-form button { padding: 9px 20px; background: #a8a8a8; border: 0; border-radius: 999px; color: #fff; font-size: 15px; cursor: pointer; }
+/* 操作エリアは通常画面では表示しない */
+.list-controls { display: none; }
+/* Todo一覧の余白を初期化する */
+.todo-list { margin: 0; padding: 0; list-style: none; }
+/* Todoを白い丸角の横長行として表示する */
+.todo-row { display: grid; grid-template-columns: 1fr; align-items: center; min-height: 62px; margin: 10px 0; padding: 13px 23px; background: #fff; border-radius: 999px; box-shadow: 0 5px 0 rgba(150,150,150,.55); }
+/* 不要なチェック欄を表示しない */
+.check-box { display: none; }
+/* 編集フォームを追加フォームと同じ列幅に揃える */
+.edit-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 9px; align-items: center; margin: 0; }
+/* 追加後の文字を小さく揃える */
+.edit-form input[name="title"], .edit-form input[name="category"], .edit-form input[name="tags"] { min-width: 0; padding: 8px 5px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font: inherit; font-size: 12px; letter-spacing: -.04em; outline: 0; }
+/* 追加後の日付欄を一列表示にする */
+.edit-form input[type="date"] { width: 100%; min-width: 0; padding: 8px 2px; background: transparent; border: 0; border-bottom: 1px solid #b8b8b8; color: #666; font-size: 12px; letter-spacing: -.04em; white-space: nowrap; }
+/* 保存ボタンを追加ボタンと同じ形にする */
+.edit-form button { padding: 9px 20px; background: #a8a8a8; border: 0; border-radius: 999px; color: #fff; font-size: 15px; cursor: pointer; }
+/* 補足情報をTodoの下に表示する */
+.meta { grid-column: 1; justify-self: center; margin-top: 5px; color: #999; font-size: 12px; letter-spacing: .02em; text-align: center; }
+/* 操作リンクをTodoの下に表示する */
+.actions { display: flex; grid-column: 1; justify-self: center; gap: 16px; margin-top: 2px; }
+/* 操作リンクの色を設定する */
+.actions a { color: #888; font-size: 12px; text-decoration: none; }
+/* 完了済みタイトルの1行目だけに取消線を付ける */
+.todo-row.done .edit-form input[name="title"], .todo-row.done .filter-result-item strong { color: #aaa; text-decoration: line-through; }
+/* 完了済みの補足情報と操作リンクは通常表示にする */
+.todo-row.done .meta, .todo-row.done .actions { text-decoration: none; }
+/* フッターの余白を確保する */
+.page-footer { min-height: 10px; margin-top: 30px; }
+/* 狭い画面では入力フォームを二列にする */
+@media (max-width: 700px) {
+    /* スマートフォン用に紙面の余白を縮める */
+    .sheet { width: calc(100vw - 20px); margin: 10px auto; padding: 34px 4% 28px; }
+    /* スマートフォン用に追加欄を二列化する */
+    .add-form { grid-template-columns: 1fr 1fr; padding: 12px 18px; border-radius: 24px; }
+    /* タスク入力欄を横幅いっぱいにする */
+    .add-form input[name="title"] { grid-column: span 2; }
+    /* 追加ボタンを横幅いっぱいにする */
+    .add-form button { grid-column: span 2; }
+    /* 編集欄を二列化する */
+    .edit-form { grid-template-columns: 1fr 1fr; }
+    /* タイトル欄を横幅いっぱいにする */
+    .edit-form input[name="title"] { grid-column: span 2; }
+    /* 保存ボタンを横幅いっぱいにする */
+    .edit-form button { grid-column: span 2; }
+    /* Todoの丸角を少し小さくする */
+    .todo-row { padding: 12px 18px; border-radius: 22px; }
 }
