@@ -231,7 +231,7 @@ public class App {
             return;
         }
         // Todo更新SQLを準備する
-        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("UPDATE todos SET title = ?, deadline = ?, category = ?, tags = ?, priority = ? WHERE id = ?")) {
+        try (Connection connection = DriverManager.getConnection(DB_URL); PreparedStatement statement = connection.prepareStatement("UPDATE todos SET title = ?, deadline = ?, category = ?, tags = ?, priority = ? WHERE id = ? AND done = 0")) {
             // タイトルを設定する
             statement.setString(1, title);
             // 締め切りを設定する

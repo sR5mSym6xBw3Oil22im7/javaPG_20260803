@@ -54,6 +54,10 @@ body { margin: 0; min-height: 100vh; background-color: #c8c8c8; background-image
 .todo-row.done .meta, .todo-row.done .filter-result-item strong { color: #fff; text-decoration: none; }
 /* 完了済みTodoの操作リンクを白く表示する */
 .todo-row.done .actions, .todo-row.done .actions a { color: #fff; text-decoration: none; }
+/* 完了済みTodoの編集欄を操作不能にする */
+.todo-row.done .edit-form { opacity: .7; pointer-events: none; }
+/* 完了済みTodoの保存ボタンを非表示にする */
+.todo-row.done .edit-form button { display: none; }
 /* フッターの余白を確保する */
 .page-footer { min-height: 10px; margin-top: 30px; }
 /* 狭い画面では入力フォームを二列にする */
